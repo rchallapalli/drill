@@ -160,6 +160,16 @@ public class DrillParquetReader extends AbstractRecordReader {
       schemaPaths.add(schemaPath);
     }
 
+      System.out.println("Query Columns : ");
+      for (SchemaPath queryColumn : modifiedColumns) {
+          System.out.println(queryColumn.toString());
+      }
+
+      System.out.println("Parquet Columns : ");
+      for (SchemaPath parquetColumn : schemaPaths) {
+          System.out.println(parquetColumn.toString());
+      }
+
     // loop through projection columns and add any columns that are missing from parquet schema to columnsNotFound list
     outer: for (SchemaPath columnPath : modifiedColumns) {
       boolean notFound = true;
@@ -173,6 +183,11 @@ public class DrillParquetReader extends AbstractRecordReader {
         columnsNotFound.add(columnPath);
       }
     }
+
+      System.out.println("Missing Columns : ");
+      for (SchemaPath missingColumn : columnsNotFound) {
+          System.out.println(missingColumn);
+      }
 
     // convert SchemaPaths from selectedSchemaPaths and convert to parquet type, and merge into projection schema
     for (SchemaPath schemaPath : selectedSchemaPaths) {
