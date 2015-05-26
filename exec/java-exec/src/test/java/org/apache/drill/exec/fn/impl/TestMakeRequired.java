@@ -18,9 +18,12 @@
 package org.apache.drill.exec.fn.impl;
 
 import org.apache.drill.BaseTestQuery;
+import org.apache.drill.common.exceptions.UserException;
+import org.apache.drill.common.exceptions.UserRemoteException;
 import org.apache.drill.common.types.TypeProtos;
 import org.apache.drill.exec.store.ischema.InfoSchemaFilter;
 import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 
 public class TestMakeRequired extends BaseTestQuery {
@@ -96,9 +99,233 @@ public class TestMakeRequired extends BaseTestQuery {
       .compareHeader()
       .build().run();
   }
+  
+  @Test
+  public void testRequiredTypesNonExistentColumn() throws Exception {
 
+    String query = "select " +
+      "makerequired(missing_col) req_int_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
 
-    /*
-     *  1. Test With a non-existent column
-     */
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes2() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast (int_col as int)) req_int_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes3() throws Exception {
+
+    String query = "select " +
+      "makerequired(bigint_col) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes4() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(date_col as date)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes5() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(time_col as time)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes6() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(timestamp_col as timestamp)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes7() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(interval_col as interval day)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes8() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(interval_col as interval year)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes9() throws Exception {
+
+    String query = "select " +
+      "makerequired(varchar_col) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes10() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(float_col as float)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes11() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(double_col as double)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
+  @Test
+  public void testRequiredTypes12() throws Exception {
+
+    String query = "select " +
+      "makerequired(cast(bool_col as boolean)) req_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    try {
+      testBuilder()
+        .sqlQuery(query)
+        .unOrdered()
+        .csvBaselineFile("functions/make_required/test1.csv")
+        .build().run();
+      assertTrue(false);
+    } catch(Exception e) {
+      assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
+    }
+  }
+
 }

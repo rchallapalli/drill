@@ -88,8 +88,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -112,8 +113,9 @@ public class MakeRequiredFunctions {
         output.start = input.start;
         output.end = input.end;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -136,8 +138,9 @@ public class MakeRequiredFunctions {
         output.start = input.start;
         output.end = input.end;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -158,8 +161,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -181,8 +185,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -204,8 +209,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -226,8 +232,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -248,8 +255,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -270,8 +278,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -292,8 +301,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.days = input.days;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -314,8 +324,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
   }
@@ -335,8 +346,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -357,8 +369,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -379,8 +392,9 @@ public class MakeRequiredFunctions {
       if (input.isSet == 1) {
         output.value = input.value;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -404,8 +418,9 @@ public class MakeRequiredFunctions {
         output.precision = input.precision;
         output.scale = input.scale;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -429,8 +444,9 @@ public class MakeRequiredFunctions {
         output.precision = input.precision;
         output.scale = input.scale;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -454,8 +470,9 @@ public class MakeRequiredFunctions {
         output.precision = input.precision;
         output.scale = input.scale;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 
@@ -479,8 +496,9 @@ public class MakeRequiredFunctions {
         output.precision = input.precision;
         output.scale = input.scale;
       } else {
-        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
-          "You tried to make a column required when it has null values");
+        throw org.apache.drill.common.exceptions.UserException.functionError()
+          .message("You tried to make a column required when it has null values")
+          .build();
       }
     }
 

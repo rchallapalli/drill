@@ -12,7 +12,7 @@
 }
 {
 "int_col":null,
-"bigint_col":24509823475,
+"bigint_col":null,
 "date_col":"1996-01-29",
 "time_col":"01:00:00",
 "timestamp_col":null,
