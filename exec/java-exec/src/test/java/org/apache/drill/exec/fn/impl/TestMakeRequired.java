@@ -99,7 +99,7 @@ public class TestMakeRequired extends BaseTestQuery {
       .compareHeader()
       .build().run();
   }
-  
+
   @Test
   public void testRequiredTypesNonExistentColumn() throws Exception {
 
