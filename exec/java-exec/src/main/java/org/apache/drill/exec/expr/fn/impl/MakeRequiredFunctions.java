@@ -62,351 +62,429 @@ import org.apache.drill.exec.expr.holders.VarCharHolder;
 import org.apache.drill.exec.record.RecordBatch;
 
 
-/**
- * Created by rchallapalli on 3/16/15.
+/*
+ * This class implements functions which can be used to convert a nullable type to a non-nullable type
+ * and throws an exception when it encounters a null value
+ * Sample Usage :
+ *     create table fewtypes_required as select makerequired(int_col) req_int_col from `fewtypes.json`;
+ * The above query makes sure that the column written to the parquet file is a required column
+ *
+ * TODO : Add a feature to replace nulls with a user-defined value
  */
 public class MakeRequiredFunctions {
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredInt implements DrillSimpleFunc {
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredInt implements DrillSimpleFunc {
 
-        @Param NullableIntHolder input;
-        @Output IntHolder output;
+    @Param
+    NullableIntHolder input;
+    @Output
+    IntHolder output;
 
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredVarchar implements DrillSimpleFunc {
-
-        @Param NullableVarCharHolder input;
-        @Output VarCharHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.end = input.end;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredVarbinary implements DrillSimpleFunc {
+  }
 
-        @Param NullableVarBinaryHolder input;
-        @Output VarBinaryHolder output;
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredVarchar implements DrillSimpleFunc {
 
-        public void setup() {}
+    @Param
+    NullableVarCharHolder input;
+    @Output
+    VarCharHolder output;
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.end = input.end;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredBoolean implements DrillSimpleFunc {
-
-        @Param NullableBitHolder input;
-        @Output BitHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.end = input.end;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
+  }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredBigInt implements DrillSimpleFunc {
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredVarbinary implements DrillSimpleFunc {
 
-        @Param NullableBigIntHolder input;
-        @Output BigIntHolder output;
+    @Param
+    NullableVarBinaryHolder input;
+    @Output
+    VarBinaryHolder output;
 
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredFloat4 implements DrillSimpleFunc {
-
-        @Param NullableFloat4Holder input;
-        @Output Float4Holder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.end = input.end;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredFloat8 implements DrillSimpleFunc {
+  }
 
-        @Param NullableFloat8Holder input;
-        @Output Float8Holder output;
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredBoolean implements DrillSimpleFunc {
 
-        public void setup() {}
+    @Param
+    NullableBitHolder input;
+    @Output
+    BitHolder output;
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDate implements DrillSimpleFunc {
-
-        @Param NullableDateHolder input;
-        @Output DateHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredTime implements DrillSimpleFunc {
+  }
 
-        @Param NullableTimeHolder input;
-        @Output TimeHolder output;
 
-        public void setup() {}
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredBigInt implements DrillSimpleFunc {
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
+    @Param
+    NullableBigIntHolder input;
+    @Output
+    BigIntHolder output;
 
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredIntervalDay implements DrillSimpleFunc {
-
-        @Param NullableIntervalDayHolder input;
-        @Output IntervalDayHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.days = input.days;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredIntervalYear implements DrillSimpleFunc {
+  }
 
-        @Param NullableIntervalYearHolder input;
-        @Output IntervalYearHolder output;
 
-        public void setup() {}
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredFloat4 implements DrillSimpleFunc {
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
+    @Param
+    NullableFloat4Holder input;
+    @Output
+    Float4Holder output;
+
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredTimeStamp implements DrillSimpleFunc {
-
-        @Param NullableTimeStampHolder input;
-        @Output TimeStampHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal9 implements DrillSimpleFunc {
+  }
 
-        @Param NullableDecimal9Holder input;
-        @Output Decimal9Holder output;
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredFloat8 implements DrillSimpleFunc {
 
-        public void setup() {}
+    @Param
+    NullableFloat8Holder input;
+    @Output
+    Float8Holder output;
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal18 implements DrillSimpleFunc {
-
-        @Param NullableDecimal18Holder input;
-        @Output Decimal18Holder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.value = input.value;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal28Sparse implements DrillSimpleFunc {
+  }
 
-        @Param NullableDecimal28SparseHolder input;
-        @Output Decimal28SparseHolder output;
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDate implements DrillSimpleFunc {
 
-        public void setup() {}
+    @Param
+    NullableDateHolder input;
+    @Output
+    DateHolder output;
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.precision = input.precision;
-                output.scale = input.scale;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal28Dense implements DrillSimpleFunc {
-
-        @Param NullableDecimal28DenseHolder input;
-        @Output Decimal28DenseHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.precision = input.precision;
-                output.scale = input.scale;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal38Dense implements DrillSimpleFunc {
+  }
 
-        @Param NullableDecimal38DenseHolder input;
-        @Output Decimal38DenseHolder output;
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredTime implements DrillSimpleFunc {
 
-        public void setup() {}
+    @Param
+    NullableTimeHolder input;
+    @Output
+    TimeHolder output;
 
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.precision = input.precision;
-                output.scale = input.scale;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void setup() {
     }
 
-    @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
-    public static class MakeRequiredDecimal38Sparse implements DrillSimpleFunc {
-
-        @Param NullableDecimal38SparseHolder input;
-        @Output Decimal38SparseHolder output;
-
-        public void setup() {}
-
-        public void eval() {
-            if (input.isSet == 1) {
-                output.buffer = input.buffer;
-                output.start = input.start;
-                output.precision = input.precision;
-                output.scale = input.scale;
-            } else {
-                throw new org.apache.drill.common.exceptions.DrillRuntimeException("You tried to make a column required when it has null values");
-            }
-        }
-
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
     }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredIntervalDay implements DrillSimpleFunc {
+
+    @Param
+    NullableIntervalDayHolder input;
+    @Output
+    IntervalDayHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.days = input.days;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredIntervalYear implements DrillSimpleFunc {
+
+    @Param
+    NullableIntervalYearHolder input;
+    @Output
+    IntervalYearHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredTimeStamp implements DrillSimpleFunc {
+
+    @Param
+    NullableTimeStampHolder input;
+    @Output
+    TimeStampHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal9 implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal9Holder input;
+    @Output
+    Decimal9Holder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal18 implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal18Holder input;
+    @Output
+    Decimal18Holder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.value = input.value;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal28Sparse implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal28SparseHolder input;
+    @Output
+    Decimal28SparseHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.precision = input.precision;
+        output.scale = input.scale;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal28Dense implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal28DenseHolder input;
+    @Output
+    Decimal28DenseHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.precision = input.precision;
+        output.scale = input.scale;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal38Dense implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal38DenseHolder input;
+    @Output
+    Decimal38DenseHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.precision = input.precision;
+        output.scale = input.scale;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
+
+  @FunctionTemplate(name = "makerequired", scope = FunctionScope.SIMPLE, nulls = NullHandling.INTERNAL)
+  public static class MakeRequiredDecimal38Sparse implements DrillSimpleFunc {
+
+    @Param
+    NullableDecimal38SparseHolder input;
+    @Output
+    Decimal38SparseHolder output;
+
+    public void setup() {
+    }
+
+    public void eval() {
+      if (input.isSet == 1) {
+        output.buffer = input.buffer;
+        output.start = input.start;
+        output.precision = input.precision;
+        output.scale = input.scale;
+      } else {
+        throw new org.apache.drill.common.exceptions.DrillRuntimeException(
+          "You tried to make a column required when it has null values");
+      }
+    }
+
+  }
 
 }
 

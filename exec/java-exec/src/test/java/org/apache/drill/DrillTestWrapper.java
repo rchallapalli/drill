@@ -49,7 +49,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * An object to encapsulate the options for a Drill unit test, as well as the execution methods to perform the tests and
  * validation of results.
- *
+ * <p/>
  * To construct an instance easily, look at the TestBuilder class. From an implementation of
  * the BaseTestQuery class, and instance of the builder is accessible through the testBuilder() method.
  */
@@ -81,6 +81,7 @@ public class DrillTestWrapper {
   // TODO - implement this
   private boolean approximateEquality;
   private BufferAllocator allocator;
+  protected TypeProtos.MajorType[] baselineTypes;
   // queries to run before the baseline or test queries, can be used to set options
   private String baselineOptionSettingQueries;
   private String testOptionSettingQueries;
@@ -95,10 +96,12 @@ public class DrillTestWrapper {
   // and translated into a map in the builder
   private List<Map> baselineRecords;
 
+  private boolean compareHeader;
+
   public DrillTestWrapper(TestBuilder testBuilder, BufferAllocator allocator, String query, QueryType queryType,
                           String baselineOptionSettingQueries, String testOptionSettingQueries,
                           QueryType baselineQueryType, boolean ordered, boolean approximateEquality,
-                          boolean highPerformanceComparison, List<Map> baselineRecords) {
+                          boolean highPerformanceComparison, List<Map> baselineRecords, TypeProtos.MajorType[] baselinesTypes, boolean compareHeader) {
     this.testBuilder = testBuilder;
     this.allocator = allocator;
     this.query = query;
@@ -110,6 +113,8 @@ public class DrillTestWrapper {
     this.testOptionSettingQueries = testOptionSettingQueries;
     this.highPerformanceComparison = highPerformanceComparison;
     this.baselineRecords = baselineRecords;
+    this.baselineTypes = baselinesTypes;
+    this.compareHeader = compareHeader;
   }
 
   public void run() throws Exception {
@@ -120,12 +125,13 @@ public class DrillTestWrapper {
     }
   }
 
+
   private BufferAllocator getAllocator() {
     return allocator;
   }
 
   private void compareHyperVectors(Map<String, HyperVectorValueIterator> expectedRecords,
-                                         Map<String, HyperVectorValueIterator> actualRecords) throws Exception {
+                                   Map<String, HyperVectorValueIterator> actualRecords) throws Exception {
     for (String s : expectedRecords.keySet()) {
       assertNotNull("Expected column '" + s + "' not found.", actualRecords.get(s));
       assertEquals(expectedRecords.get(s).getTotalRecords(), actualRecords.get(s).getTotalRecords());
@@ -168,7 +174,7 @@ public class DrillTestWrapper {
   }
 
   private Map<String, HyperVectorValueIterator> addToHyperVectorMap(List<QueryDataBatch> records, RecordBatchLoader loader,
-                                                                      BatchSchema schema) throws SchemaChangeException, UnsupportedEncodingException {
+                                                                    BatchSchema schema) throws SchemaChangeException, UnsupportedEncodingException {
     // TODO - this does not handle schema changes
     Map<String, HyperVectorValueIterator> combinedVectors = new HashMap();
 
@@ -188,7 +194,7 @@ public class DrillTestWrapper {
           ValueVector[] vvList = (ValueVector[]) Array.newInstance(mf.getValueClass(), 1);
           vvList[0] = w.getValueVector();
           combinedVectors.put(mf.getPath().toExpr(), new HyperVectorValueIterator(mf, new HyperVectorWrapper(mf,
-              vvList)));
+            vvList)));
         } else {
           combinedVectors.get(field).getHyperVector().addVector(w.getValueVector());
         }
@@ -205,8 +211,9 @@ public class DrillTestWrapper {
    * Only use this method if absolutely needed. There are utility methods to compare results of single queries.
    * The current use case for exposing this is setting session or system options between the test and verification
    * queries.
-   *
+   * <p/>
    * TODO - evaluate adding an interface to allow setting session and system options before running queries
+   *
    * @param records
    * @param loader
    * @param schema
@@ -214,8 +221,8 @@ public class DrillTestWrapper {
    * @throws SchemaChangeException
    * @throws UnsupportedEncodingException
    */
-   private Map<String, List> addToCombinedVectorResults(List<QueryDataBatch> records, RecordBatchLoader loader,
-                                                         BatchSchema schema) throws SchemaChangeException, UnsupportedEncodingException {
+  private Map<String, List> addToCombinedVectorResults(List<QueryDataBatch> records, RecordBatchLoader loader,
+                                                       BatchSchema schema) throws SchemaChangeException, UnsupportedEncodingException {
     // TODO - this does not handle schema changes
     Map<String, List> combinedVectors = new HashMap();
 
@@ -245,8 +252,7 @@ public class DrillTestWrapper {
               if (obj.equals("")) {
                 System.out.println(w.getField());
               }
-            }
-            else if (obj instanceof byte[]) {
+            } else if (obj instanceof byte[]) {
               obj = new String((byte[]) obj, "UTF-8");
             }
           }
@@ -260,6 +266,23 @@ public class DrillTestWrapper {
     return combinedVectors;
   }
 
+  public boolean compareHeader(UserBitShared.RecordBatchDef recordBatchDef) throws Exception {
+    List<UserBitShared.SerializedField> fieldList = recordBatchDef.getFieldList();
+    if (fieldList.size() == baselineTypes.length) {
+      for (int i = 0; i < fieldList.size(); i++) {
+        UserBitShared.SerializedField field = fieldList.get(i);
+        TypeProtos.MajorType actualMajorField = field.getMajorType();
+        if (actualMajorField.getMode() != baselineTypes[i].getMode()) {
+          throw new Exception("Expected mode " + baselineTypes[i].getMode() + " is different from the actual mode " + actualMajorField.getMode());
+        }
+      }
+    } else {
+      throw new Exception("Expected column count(" + baselineTypes.length + ") does not match the actual column count(" + fieldList.size() + ") in the header");
+    }
+
+    return true;
+  }
+
   /**
    * Use this method only if necessary to validate one query against another. If you are just validating against a
    * baseline file use one of the simpler interfaces that will write the validation query for you.
@@ -270,7 +293,7 @@ public class DrillTestWrapper {
     RecordBatchLoader loader = new RecordBatchLoader(getAllocator());
     BatchSchema schema = null;
 
-    List<QueryDataBatch> actual = Collections.EMPTY_LIST;;
+    List<QueryDataBatch> actual = Collections.EMPTY_LIST;
     List<QueryDataBatch> expected = Collections.EMPTY_LIST;
     List<Map> expectedRecords = new ArrayList<>();
     List<Map> actualRecords = new ArrayList<>();
@@ -278,7 +301,9 @@ public class DrillTestWrapper {
     try {
       BaseTestQuery.test(testOptionSettingQueries);
       actual = BaseTestQuery.testRunAndReturn(queryType, query);
-
+      if (compareHeader) {
+        compareHeader(actual.get(0).getHeader().getDef());
+      }
       addTypeInfoIfMissing(actual.get(0), testBuilder);
       addToMaterializedResults(actualRecords, actual, loader, schema);
 
@@ -319,41 +344,43 @@ public class DrillTestWrapper {
     RecordBatchLoader loader = new RecordBatchLoader(getAllocator());
     BatchSchema schema = null;
 
-    List<QueryDataBatch> actual = Collections.EMPTY_LIST;;
+    List<QueryDataBatch> actual = Collections.EMPTY_LIST;
     List<QueryDataBatch> expected = Collections.EMPTY_LIST;
     Map<String, List> actualSuperVectors;
     Map<String, List> expectedSuperVectors;
 
     try {
-    BaseTestQuery.test(testOptionSettingQueries);
-    actual = BaseTestQuery.testRunAndReturn(queryType, query);
-    // To avoid extra work for test writers, types can optionally be inferred from the test query
-    addTypeInfoIfMissing(actual.get(0), testBuilder);
-
-    actualSuperVectors = addToCombinedVectorResults(actual, loader, schema);
-
-    // If baseline data was not provided to the test builder directly, we must run a query for the baseline, this includes
-    // the cases where the baseline is stored in a file.
-    if (baselineRecords == null) {
-      BaseTestQuery.test(baselineOptionSettingQueries);
-      expected = BaseTestQuery.testRunAndReturn(baselineQueryType, testBuilder.getValidationQuery());
-      expectedSuperVectors = addToCombinedVectorResults(expected, loader, schema);
-    } else {
-      // data is built in the TestBuilder in a row major format as it is provided by the user
-      // translate it here to vectorized, the representation expected by the ordered comparison
-      expectedSuperVectors = new HashMap();
-      expected = new ArrayList();
-      for (String s : ((Map<String, Object>)baselineRecords.get(0)).keySet()) {
-        expectedSuperVectors.put(s, new ArrayList());
+      BaseTestQuery.test(testOptionSettingQueries);
+      actual = BaseTestQuery.testRunAndReturn(queryType, query);
+      if (compareHeader) {
+        compareHeader(actual.get(0).getHeader().getDef());
       }
-      for (Map<String, Object> m : baselineRecords) {
-        for (String s : m.keySet()) {
-          expectedSuperVectors.get(s).add(m.get(s));
+      // To avoid extra work for test writers, types can optionally be inferred from the test query
+      addTypeInfoIfMissing(actual.get(0), testBuilder);
+
+      actualSuperVectors = addToCombinedVectorResults(actual, loader, schema);
+
+      // If baseline data was not provided to the test builder directly, we must run a query for the baseline, this includes
+      // the cases where the baseline is stored in a file.
+      if (baselineRecords == null) {
+        BaseTestQuery.test(baselineOptionSettingQueries);
+        expected = BaseTestQuery.testRunAndReturn(baselineQueryType, testBuilder.getValidationQuery());
+        expectedSuperVectors = addToCombinedVectorResults(expected, loader, schema);
+      } else {
+        // data is built in the TestBuilder in a row major format as it is provided by the user
+        // translate it here to vectorized, the representation expected by the ordered comparison
+        expectedSuperVectors = new HashMap();
+        expected = new ArrayList();
+        for (String s : ((Map<String, Object>) baselineRecords.get(0)).keySet()) {
+          expectedSuperVectors.put(s, new ArrayList());
+        }
+        for (Map<String, Object> m : baselineRecords) {
+          for (String s : m.keySet()) {
+            expectedSuperVectors.get(s).add(m.get(s));
+          }
         }
       }
-    }
-
-    compareMergedVectors(expectedSuperVectors, actualSuperVectors);
+      compareMergedVectors(expectedSuperVectors, actualSuperVectors);
     } finally {
       cleanupBatches(expected, actual);
     }
@@ -365,6 +392,9 @@ public class DrillTestWrapper {
 
     BaseTestQuery.test(testOptionSettingQueries);
     List<QueryDataBatch> results = BaseTestQuery.testRunAndReturn(queryType, query);
+    if (compareHeader) {
+      compareHeader(results.get(0).getHeader().getDef());
+    }
     // To avoid extra work for test writers, types can optionally be inferred from the test query
     addTypeInfoIfMissing(results.get(0), testBuilder);
 
@@ -380,7 +410,7 @@ public class DrillTestWrapper {
   }
 
   private void addTypeInfoIfMissing(QueryDataBatch batch, TestBuilder testBuilder) {
-    if (! testBuilder.typeInfoSet()) {
+    if (!testBuilder.typeInfoSet()) {
       Map<SchemaPath, TypeProtos.MajorType> typeMap = getTypeMapFromBatch(batch);
       testBuilder.baselineTypes(typeMap);
     }
@@ -391,20 +421,20 @@ public class DrillTestWrapper {
     Map<SchemaPath, TypeProtos.MajorType> typeMap = new HashMap();
     for (int i = 0; i < batch.getHeader().getDef().getFieldCount(); i++) {
       typeMap.put(MaterializedField.create(batch.getHeader().getDef().getField(i)).getPath(),
-          batch.getHeader().getDef().getField(i).getMajorType());
+        batch.getHeader().getDef().getField(i).getMajorType());
     }
     return typeMap;
   }
 
   private void cleanupBatches(List<QueryDataBatch>... results) {
-    for (List<QueryDataBatch> resultList : results ) {
+    for (List<QueryDataBatch> resultList : results) {
       for (QueryDataBatch result : resultList) {
         result.release();
       }
     }
   }
 
-  protected void addToMaterializedResults(List<Map> materializedRecords,  List<QueryDataBatch> records, RecordBatchLoader loader,
+  protected void addToMaterializedResults(List<Map> materializedRecords, List<QueryDataBatch> records, RecordBatchLoader loader,
                                           BatchSchema schema) throws SchemaChangeException, UnsupportedEncodingException {
     long totalRecords = 0;
     QueryDataBatch batch;
@@ -429,8 +459,7 @@ public class DrillTestWrapper {
               if (obj.equals("")) {
                 System.out.println(w.getField());
               }
-            }
-            else if (obj instanceof byte[]) {
+            } else if (obj instanceof byte[]) {
               obj = new String((byte[]) obj, "UTF-8");
             }
             record.put(w.getField().toExpr(), obj);
@@ -452,18 +481,18 @@ public class DrillTestWrapper {
     }
     if (expected == null) {
       throw new Exception("at position " + counter + " column '" + column + "' mismatched values, expected: null " +
-          "but received " + actual + "(" + actual.getClass().getSimpleName() + ")");
+        "but received " + actual + "(" + actual.getClass().getSimpleName() + ")");
     }
     if (actual == null) {
       throw new Exception("unexpected null at position " + counter + " column '" + column + "' should have been:  " + expected);
     }
     if (actual instanceof byte[]) {
       throw new Exception("at position " + counter + " column '" + column + "' mismatched values, expected: "
-          + new String((byte[])expected, "UTF-8") + " but received " + new String((byte[])actual, "UTF-8"));
+        + new String((byte[]) expected, "UTF-8") + " but received " + new String((byte[]) actual, "UTF-8"));
     }
     if (!expected.equals(actual)) {
       throw new Exception("at position " + counter + " column '" + column + "' mismatched values, expected: "
-          + expected + "(" + expected.getClass().getSimpleName() + ") but received " + actual + "(" + actual.getClass().getSimpleName() + ")");
+        + expected + "(" + expected.getClass().getSimpleName() + ") but received " + actual + "(" + actual.getClass().getSimpleName() + ")");
     }
     return true;
   }
@@ -472,7 +501,7 @@ public class DrillTestWrapper {
     if (expected == null) {
       if (actual == null) {
         if (VERBOSE_DEBUG) {
-          logger.debug("(1) at position " + counter + " column '" + column + "' matched value:  " + expected );
+          logger.debug("(1) at position " + counter + " column '" + column + "' matched value:  " + expected);
         }
         return true;
       } else {
@@ -483,11 +512,11 @@ public class DrillTestWrapper {
       return false;
     }
     if (actual instanceof byte[]) {
-      if ( ! Arrays.equals((byte[]) expected, (byte[]) actual)) {
+      if (!Arrays.equals((byte[]) expected, (byte[]) actual)) {
         return false;
       } else {
         if (VERBOSE_DEBUG) {
-          logger.debug("at position " + counter + " column '" + column + "' matched value " + new String((byte[])expected, "UTF-8"));
+          logger.debug("at position " + counter + " column '" + column + "' matched value " + new String((byte[]) expected, "UTF-8"));
         }
         return true;
       }
@@ -496,7 +525,7 @@ public class DrillTestWrapper {
       return false;
     } else {
       if (VERBOSE_DEBUG) {
-        logger.debug("at position " + counter + " column '" + column + "' matched value:  " + expected );
+        logger.debug("at position " + counter + " column '" + column + "' matched value:  " + expected);
       }
     }
     return true;
@@ -506,7 +535,7 @@ public class DrillTestWrapper {
    * Compare two result sets, ignoring ordering.
    *
    * @param expectedRecords - list of records from baseline
-   * @param actualRecords - list of records from test query, WARNING - this list is destroyed in this method
+   * @param actualRecords   - list of records from test query, WARNING - this list is destroyed in this method
    * @throws Exception
    */
   private void compareResults(List<Map> expectedRecords, List<Map> actualRecords) throws Exception {
@@ -526,7 +555,7 @@ public class DrillTestWrapper {
           if (!expectedRecord.containsKey(s)) {
             throw new Exception("Unexpected column '" + s + "' returned by query.");
           }
-          if ( ! compareValues(expectedRecord.get(s), actualRecord.get(s), counter, s)) {
+          if (!compareValues(expectedRecord.get(s), actualRecord.get(s), counter, s)) {
             i++;
             continue findMatch;
           }
@@ -562,7 +591,7 @@ public class DrillTestWrapper {
   private String printRecord(Map<String, Object> record) {
     String ret = "";
     for (String s : record.keySet()) {
-      ret += s + " : "  + record.get(s) + ", ";
+      ret += s + " : " + record.get(s) + ", ";
     }
     return ret + "\n";
   }

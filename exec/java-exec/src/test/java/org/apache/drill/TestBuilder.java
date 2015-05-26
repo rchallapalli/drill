@@ -57,6 +57,7 @@ public class TestBuilder {
   // case where results of the test query are adding type casts to the baseline queries, this saves a little bit of
   // setup in cases where strict type enforcement is not necessary for a given test
   protected Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap;
+  protected TypeProtos.MajorType[] baselineTypes;
   // queries to run before the baseline or test queries, can be used to set options
   private String baselineOptionSettingQueries;
   private String testOptionSettingQueries;
@@ -79,6 +80,8 @@ public class TestBuilder {
   // that would affect the reading of baseline files (i.e. we need robust test for storage engines, project and casting that
   // use this interface) and then rely on the engine for the rest of the tests that will use the baseline queries.
   private List<Map> baselineRecords;
+
+  private boolean compareHeader = false;
 
   public TestBuilder(BufferAllocator allocator) {
     this.allocator = allocator;
@@ -110,15 +113,16 @@ public class TestBuilder {
     testOptionSettingQueries = "";
     baselineOptionSettingQueries = "";
     baselineRecords = null;
+    baselineTypeMap = null;
     return this;
   }
 
   public DrillTestWrapper build() throws Exception {
-    if ( ! ordered && highPerformanceComparison ) {
+    if (!ordered && highPerformanceComparison) {
       throw new Exception("High performance comparison only available for ordered checks, to enforce this restriction, ordered() must be called first.");
     }
     return new DrillTestWrapper(this, allocator, query, queryType, baselineOptionSettingQueries, testOptionSettingQueries,
-        getValidationQueryType(), ordered, approximateEquality, highPerformanceComparison, baselineRecords);
+      getValidationQueryType(), ordered, approximateEquality, highPerformanceComparison, baselineRecords, baselineTypes, compareHeader);
   }
 
   public void go() throws Exception {
@@ -159,6 +163,25 @@ public class TestBuilder {
     return this;
   }
 
+  public TestBuilder baselineTypes(TypeProtos.MajorType... baselineTypes) {
+    this.baselineTypes = baselineTypes;
+    this.baselineTypeMap = null;
+    return this;
+  }
+
+  public TestBuilder baselineTypes(TypeProtos.MinorType... baselineTypes) {
+    TypeProtos.MajorType[] majorTypes = new TypeProtos.MajorType[baselineTypes.length];
+    int i = 0;
+    for (TypeProtos.MinorType minorType : baselineTypes) {
+      majorTypes[i] = Types.required(minorType);
+      i++;
+    }
+    this.baselineTypes = majorTypes;
+    this.baselineTypeMap = null;
+    return this;
+  }
+
+
   // this can only be used with ordered verifications, it does run faster and use less memory but may be
   // a little harder to debug as it iterates over a hyper batch rather than reading all of the values into
   // large on-heap lists
@@ -180,6 +203,7 @@ public class TestBuilder {
     this.testOptionSettingQueries = queries;
     return this;
   }
+
   public TestBuilder approximateEquality() {
     this.approximateEquality = true;
     return this;
@@ -221,12 +245,12 @@ public class TestBuilder {
 
   public JSONTestBuilder jsonBaselineFile(String filePath) {
     return new JSONTestBuilder(filePath, allocator, query, queryType, ordered, approximateEquality,
-        baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
+      baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
   }
 
   public CSVTestBuilder csvBaselineFile(String filePath) {
     return new CSVTestBuilder(filePath, allocator, query, queryType, ordered, approximateEquality,
-        baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
+      baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
   }
 
   public TestBuilder baselineTypes(Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap) {
@@ -252,14 +276,14 @@ public class TestBuilder {
   /**
    * This method is used to pass in a simple list of values for a single record verification without
    * the need to create a CSV or JSON file to store the baseline.
-   *
+   * <p/>
    * This can be called repeatedly to pass a list of records to verify. It works for both ordered and unordered
    * checks.
    *
    * @param baselineValues - the baseline values to validate
    * @return
    */
-  public TestBuilder baselineValues(Object ... baselineValues) {
+  public TestBuilder baselineValues(Object... baselineValues) {
     if (ordered == null) {
       throw new RuntimeException("Ordering not set, before specifying baseline data you must explicitly call the ordered() or unOrdered() method on the " + this.getClass().getSimpleName());
     }
@@ -282,7 +306,7 @@ public class TestBuilder {
    * Most of the methods for verification in the framework run drill queries to generate the read baseline files or
    * execute alternative baseline queries. This model relies on basic functionality of reading files with storage
    * plugins and applying casts/projects to be stable.
-   *
+   * <p/>
    * This method can be used to verify the engine for these cases and any other future execution paths that would
    * be used by both the test query and baseline. Without tests like this it is possible that some tests
    * could falsely report as passing, as both the test query and baseline query could run into the same problem
@@ -299,15 +323,15 @@ public class TestBuilder {
   /**
    * This setting has a slightly different impact on the test depending on some of the other
    * configuration options are set.
-   *
+   * <p/>
    * If a JSON baseline file is given, this list will act as a project list to verify the
    * test query against a subset of the columns in the file.
-   *
+   * <p/>
    * For a CSV baseline file, these will act as aliases for columns [0 .. n] in the repeated
    * varchar column that is read out of CSV.
-   *
+   * <p/>
    * For a baseline sql query, this currently has no effect.
-   *
+   * <p/>
    * For explicit baseline values given in java code with the baselineValues() method, these will
    * be used to create a map for the one record verification.
    */
@@ -319,6 +343,11 @@ public class TestBuilder {
     return this;
   }
 
+  public TestBuilder compareHeader() {
+    this.compareHeader = true;
+    return this;
+  }
+
   private boolean singleExplicitBaselineRecord() {
     return baselineRecords != null;
   }
@@ -326,14 +355,14 @@ public class TestBuilder {
   // provide a SQL query to validate against
   public BaselineQueryTestBuilder sqlBaselineQuery(String baselineQuery) {
     return new BaselineQueryTestBuilder(baselineQuery, UserBitShared.QueryType.SQL, allocator, query, queryType, ordered, approximateEquality,
-        baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
+      baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
   }
 
   // provide a path to a file containing a SQL query to use as a baseline
   public BaselineQueryTestBuilder sqlBaselineQueryFromFile(String baselineQueryFilename) throws IOException {
     String baselineQuery = BaseTestQuery.getFile(baselineQueryFilename);
     return new BaselineQueryTestBuilder(baselineQuery, UserBitShared.QueryType.SQL, allocator, query, queryType, ordered, approximateEquality,
-        baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
+      baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
   }
 
   // as physical plans are verbose, this is the only option provided for specifying them, we should enforce
@@ -341,12 +370,12 @@ public class TestBuilder {
   public BaselineQueryTestBuilder physicalPlanBaselineQueryFromFile(String baselinePhysicalPlanPath) throws IOException {
     String baselineQuery = BaseTestQuery.getFile(baselinePhysicalPlanPath);
     return new BaselineQueryTestBuilder(baselineQuery, UserBitShared.QueryType.PHYSICAL, allocator, query, queryType, ordered, approximateEquality,
-        baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
+      baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries, highPerformanceComparison);
   }
 
   private String getDecimalPrecisionScaleInfo(TypeProtos.MajorType type) {
     String precision = "";
-    switch(type.getMinorType()) {
+    switch (type.getMinorType()) {
       case DECIMAL18:
       case DECIMAL28SPARSE:
       case DECIMAL38SPARSE:
@@ -367,34 +396,16 @@ public class TestBuilder {
     private String baselineFilePath;
     // use to cast the baseline file columns, if not set the types
     // that come out of the test query drive interpretation of baseline
-    private TypeProtos.MajorType[] baselineTypes;
+
 
     CSVTestBuilder(String baselineFile, BufferAllocator allocator, String query, UserBitShared.QueryType queryType, Boolean ordered,
                    boolean approximateEquality, Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap,
                    String baselineOptionSettingQueries, String testOptionSettingQueries, boolean highPerformanceComparison) {
       super(allocator, query, queryType, ordered, approximateEquality, baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries,
-          highPerformanceComparison);
+        highPerformanceComparison);
       this.baselineFilePath = baselineFile;
     }
 
-    public CSVTestBuilder baselineTypes(TypeProtos.MajorType... baselineTypes) {
-      this.baselineTypes = baselineTypes;
-      this.baselineTypeMap = null;
-      return this;
-    }
-
-    // convenience method to convert minor types to major types if no decimals with precisions are needed
-    public CSVTestBuilder baselineTypes(TypeProtos.MinorType ... baselineTypes) {
-      TypeProtos.MajorType[] majorTypes = new TypeProtos.MajorType[baselineTypes.length];
-      int i = 0;
-      for(TypeProtos.MinorType minorType : baselineTypes) {
-        majorTypes[i] = Types.required(minorType);
-        i++;
-      }
-      this.baselineTypes = majorTypes;
-      this.baselineTypeMap = null;
-      return this;
-    }
 
     protected TestBuilder reset() {
       super.reset();
@@ -438,11 +449,11 @@ public class TestBuilder {
         // set default cast size for varchar, the cast function will take the lesser of this passed value and the
         // length of the incoming data when choosing the length for the outgoing data
         if (majorType.getMinorType() == TypeProtos.MinorType.VARCHAR ||
-            majorType.getMinorType() == TypeProtos.MinorType.VARBINARY) {
+          majorType.getMinorType() == TypeProtos.MinorType.VARBINARY) {
           precision = "(65000)";
         }
         aliasedExpectedColumns[i] = "cast(" + aliasedExpectedColumns[i] + " as " +
-            Types.getNameOfMinorType(majorType.getMinorType()) + precision +  " ) " + baselineColumns[i];
+          Types.getNameOfMinorType(majorType.getMinorType()) + precision + " ) " + baselineColumns[i];
       }
       String query = "select " + Joiner.on(", ").join(aliasedExpectedColumns) + " from cp.`" + baselineFilePath + "`";
       return query;
@@ -463,9 +474,9 @@ public class TestBuilder {
                     boolean approximateEquality, Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap,
                     String baselineOptionSettingQueries, String testOptionSettingQueries, boolean highPerformanceComparison) {
       super(allocator, query, queryType, ordered, approximateEquality, baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries,
-          highPerformanceComparison);
+        highPerformanceComparison);
       this.baselineFilePath = baselineFile;
-      this.baselineColumns = new String[] {"*"};
+      this.baselineColumns = new String[]{"*"};
     }
 
     String getValidationQuery() {
@@ -488,7 +499,7 @@ public class TestBuilder {
                              boolean approximateEquality, Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap,
                              String baselineOptionSettingQueries, String testOptionSettingQueries, boolean highPerformanceComparison) {
       super(allocator, query, queryType, ordered, approximateEquality, baselineTypeMap, baselineOptionSettingQueries, testOptionSettingQueries,
-          highPerformanceComparison);
+        highPerformanceComparison);
       this.baselineQuery = baselineQuery;
       this.baselineQueryType = baselineQueryType;
     }
@@ -515,7 +526,7 @@ public class TestBuilder {
    */
   public static JsonStringArrayList listOf(Object... values) {
     final JsonStringArrayList list = new JsonStringArrayList<>();
-    for (Object value:values) {
+    for (Object value : values) {
       if (value instanceof CharSequence) {
         list.add(new Text(value.toString()));
       } else {
@@ -527,16 +538,16 @@ public class TestBuilder {
 
   /**
    * Convenience method to create a {@link JsonStringHashMap<String, Object> map} instance with the given key value sequence.
-   *
+   * <p/>
    * Key value sequence consists of key - value pairs such that a key precedes its value. For instance:
-   *
+   * <p/>
    * mapOf("name", "Adam", "age", 41) corresponds to {"name": "Adam", "age": 41} in JSON.
    */
   public static JsonStringHashMap<String, Object> mapOf(Object... keyValueSequence) {
-    Preconditions.checkArgument(keyValueSequence.length%2==0, "Length of key value sequence must be even");
+    Preconditions.checkArgument(keyValueSequence.length % 2 == 0, "Length of key value sequence must be even");
     final JsonStringHashMap<String, Object> map = new JsonStringHashMap<>();
-    for (int i=0; i<keyValueSequence.length; i+=2) {
-      Object value = keyValueSequence[i+1];
+    for (int i = 0; i < keyValueSequence.length; i += 2) {
+      Object value = keyValueSequence[i + 1];
       if (value instanceof CharSequence) {
         value = new Text(value.toString());
       }

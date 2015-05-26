@@ -393,7 +393,7 @@ public class Types {
   public static String getNameOfMinorType(final MinorType type) {
     switch (type) {
       case BIT:
-        return "bool";
+        return "boolean";
       case TINYINT:
         return "tinyint";
       case UINT1:
@@ -434,6 +434,10 @@ public class Types {
         return "timestamp";
       case VARBINARY:
         return "binary";
+      case INTERVALDAY:
+        return "interval day";
+      case INTERVALYEAR:
+        return "interval year";
       case LATE:
         throw new DrillRuntimeException("The late type should never appear in execution or an SQL query, so it does not have a name to refer to it.");
       default:
