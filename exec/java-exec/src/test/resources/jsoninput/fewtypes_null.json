@@ -1,0 +1,24 @@
+{
+  "int_col":1,
+  "bigint_col":98723980547,
+  "date_col":null,
+  "time_col":null,
+  "timestamp_col":"1997-01-02 00:00:00.0",
+  "interval_col":"P18582D",
+  "varchar_col":null,
+  "float_col":2345.33,
+  "double_col":null,
+  "bool_col":false
+}
+{
+"int_col":null,
+"bigint_col":null,
+"date_col":"1996-01-29",
+"time_col":"01:00:00",
+"timestamp_col":null,
+"interval_col":null,
+"varchar_col":"jhgduitweriuoert",
+"float_col":null,
+"double_col":664522.332,
+"bool_col":null
+}

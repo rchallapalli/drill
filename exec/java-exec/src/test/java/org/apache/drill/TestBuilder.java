@@ -79,6 +79,10 @@ public class TestBuilder {
   // that would affect the reading of baseline files (i.e. we need robust test for storage engines, project and casting that
   // use this interface) and then rely on the engine for the rest of the tests that will use the baseline queries.
   private List<Map> baselineRecords;
+  // use to cast the baseline file columns, if not set the types
+  // that come out of the test query drive interpretation of baseline
+  protected TypeProtos.MajorType[] baselineTypes;
+  private boolean compareHeader = false;
 
   public TestBuilder(BufferAllocator allocator) {
     this.allocator = allocator;
@@ -118,7 +122,7 @@ public class TestBuilder {
       throw new Exception("High performance comparison only available for ordered checks, to enforce this restriction, ordered() must be called first.");
     }
     return new DrillTestWrapper(this, allocator, query, queryType, baselineOptionSettingQueries, testOptionSettingQueries,
-        getValidationQueryType(), ordered, approximateEquality, highPerformanceComparison, baselineRecords);
+        getValidationQueryType(), ordered, approximateEquality, highPerformanceComparison, baselineRecords, baselineTypes, compareHeader);
   }
 
   public void go() throws Exception {
@@ -319,6 +323,11 @@ public class TestBuilder {
     return this;
   }
 
+  public TestBuilder compareHeader() {
+    this.compareHeader = true;
+    return this;
+  }
+
   private boolean singleExplicitBaselineRecord() {
     return baselineRecords != null;
   }
@@ -365,9 +374,6 @@ public class TestBuilder {
 
     // path to the baseline file that will be inserted into the validation query
     private String baselineFilePath;
-    // use to cast the baseline file columns, if not set the types
-    // that come out of the test query drive interpretation of baseline
-    private TypeProtos.MajorType[] baselineTypes;
 
     CSVTestBuilder(String baselineFile, BufferAllocator allocator, String query, UserBitShared.QueryType queryType, Boolean ordered,
                    boolean approximateEquality, Map<SchemaPath, TypeProtos.MajorType> baselineTypeMap,

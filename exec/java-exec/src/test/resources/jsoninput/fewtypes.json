@@ -1,0 +1,24 @@
+{
+  "int_col":1,
+  "bigint_col":98723980547,
+  "date_col":"2006-01-29",
+  "time_col":"05:34:54",
+  "timestamp_col":"1997-01-02 00:00:00.0",
+  "interval_col":"P18582D",
+  "varchar_col":"lkds",
+  "float_col":2345.33,
+  "double_col":1423.213,
+  "bool_col":false
+}
+{
+"int_col":2,
+"bigint_col":24509823475,
+"date_col":"1996-01-29",
+"time_col":"01:00:00",
+"timestamp_col":"1999-12-02 04:34:12.0",
+"interval_col":"P18583D",
+"varchar_col":"jhgduitweriuoert",
+"float_col":23.56,
+"double_col":664522.332,
+"bool_col":true
+}

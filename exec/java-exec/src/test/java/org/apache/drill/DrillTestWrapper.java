@@ -94,11 +94,13 @@ public class DrillTestWrapper {
   // without creating a file, these are provided to the builder in the baselineValues() and baselineColumns() methods
   // and translated into a map in the builder
   private List<Map> baselineRecords;
+  protected TypeProtos.MajorType[] baselineTypes;
+  private boolean compareHeader;
 
   public DrillTestWrapper(TestBuilder testBuilder, BufferAllocator allocator, String query, QueryType queryType,
                           String baselineOptionSettingQueries, String testOptionSettingQueries,
                           QueryType baselineQueryType, boolean ordered, boolean approximateEquality,
-                          boolean highPerformanceComparison, List<Map> baselineRecords) {
+                          boolean highPerformanceComparison, List<Map> baselineRecords, TypeProtos.MajorType[] baselinesTypes, boolean compareHeader) {
     this.testBuilder = testBuilder;
     this.allocator = allocator;
     this.query = query;
@@ -110,6 +112,8 @@ public class DrillTestWrapper {
     this.testOptionSettingQueries = testOptionSettingQueries;
     this.highPerformanceComparison = highPerformanceComparison;
     this.baselineRecords = baselineRecords;
+    this.baselineTypes = baselinesTypes;
+    this.compareHeader = compareHeader;
   }
 
   public void run() throws Exception {
@@ -258,6 +262,23 @@ public class DrillTestWrapper {
       loader.clear();
     }
     return combinedVectors;
+  }
+
+  public boolean compareHeader(UserBitShared.RecordBatchDef recordBatchDef) throws Exception {
+    List<UserBitShared.SerializedField> fieldList = recordBatchDef.getFieldList();
+    if (fieldList.size() == this.testBuilder.baselineTypes.length) {
+      for (int i = 0; i < fieldList.size(); i++) {
+        UserBitShared.SerializedField field = fieldList.get(i);
+        TypeProtos.MajorType actualMajorField = field.getMajorType();
+        if (actualMajorField.getMode() != baselineTypes[i].getMode()) {
+          throw new Exception("Expected mode " + baselineTypes[i].getMode() + " is different from the actual mode " + actualMajorField.getMode());
+        }
+      }
+    } else {
+      throw new Exception("Expected column count(" + baselineTypes.length + ") does not match the actual column count(" + fieldList.size() + ") in the header");
+    }
+
+    return true;
   }
 
   /**
