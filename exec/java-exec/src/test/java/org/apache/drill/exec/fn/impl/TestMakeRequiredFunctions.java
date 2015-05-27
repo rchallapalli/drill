@@ -70,7 +70,7 @@ public class TestMakeRequiredFunctions extends BaseTestQuery {
       "from cp.`jsoninput/fewtypes.json` d";
     testBuilder()
       .sqlQuery(query)
-      .unOrdered()
+      .ordered()
       .csvBaselineFile("functions/make_required/test1.csv")
       .baselineTypes(
         majorTypeInt,
@@ -117,6 +117,27 @@ public class TestMakeRequiredFunctions extends BaseTestQuery {
     } catch(Exception e) {
       assertTrue(e.getMessage().contains("You tried to make a column required when it has null values"));
     }
+  }
+
+  @Test
+  public void testRequiredTypesWitCoalesce() throws Exception {
+    TypeProtos.MajorType.Builder builder = TypeProtos.MajorType.getDefaultInstance().toBuilder();
+    builder.setMinorType(TypeProtos.MinorType.INT);
+    builder.setMode(TypeProtos.DataMode.REQUIRED);
+    TypeProtos.MajorType majorTypeInt = builder.build();
+
+    String query = "select " +
+      "make_required(coalesce(cast (int_col as int), -1)) req_int_col " +
+      "from cp.`jsoninput/fewtypes_null.json` d";
+
+    testBuilder()
+      .sqlQuery(query)
+      .ordered()
+      .csvBaselineFile("functions/make_required/required_coalesce.csv")
+      .baselineTypes(majorTypeInt)
+      .baselineColumns("req_int_col")
+      .compareHeader()
+      .build().run();
   }
 
   @Test
