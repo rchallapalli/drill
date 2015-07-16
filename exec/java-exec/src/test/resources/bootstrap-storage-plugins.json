@@ -42,6 +42,9 @@
         },
         "avro" : {
           type: "avro"
+        },
+        "lucene" : {
+          type: "lucene"
         }
       }
     }
