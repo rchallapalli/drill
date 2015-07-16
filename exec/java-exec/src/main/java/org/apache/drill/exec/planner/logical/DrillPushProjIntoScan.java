@@ -35,6 +35,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.Lists;
+import org.apache.drill.exec.util.AssertionUtil;
 
 public class DrillPushProjIntoScan extends RelOptRule {
   public static final RelOptRule INSTANCE = new DrillPushProjIntoScan(LogicalProject.class, EnumerableTableScan.class);
@@ -86,7 +87,11 @@ public class DrillPushProjIntoScan extends RelOptRule {
         call.transformTo(newProj);
       }
     } catch (IOException e) {
+
       throw new DrillRuntimeException(e);
+    } catch (AssertionError e) {
+      StackTraceElement[] trace = e.getStackTrace();
+      System.out.println("hello");
     }
   }
 

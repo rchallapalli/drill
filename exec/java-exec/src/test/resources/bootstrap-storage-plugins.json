@@ -60,10 +60,15 @@
         },
         "csvh-test" : {
           type: "text",
-          extensions: [ "csvh-test" ],
+          extensions: [
+            "csvh-test"
+          ],
           delimiter: ",",
           extractHeader: true,
           skipFirstLine: true
+        },
+        "lucene" : {
+          type: "lucene"
         }
       }
     }
