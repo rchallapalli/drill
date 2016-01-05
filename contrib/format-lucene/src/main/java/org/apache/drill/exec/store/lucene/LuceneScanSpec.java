@@ -26,6 +26,8 @@ import org.apache.drill.exec.store.dfs.FileSelection;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.FieldValueQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 
 import java.io.File;
@@ -65,11 +67,15 @@ public class LuceneScanSpec {
 
   @JsonIgnore
   public Query getSearchQuery() {
+    if (this.searchQuery == null) {
+      this.searchQuery = new MatchAllDocsQuery();
+    }
     return this.searchQuery;
   }
 
   public byte[] getSerializedSerachQuery() {
-      return searchQuery.toString().getBytes();
+    return getSearchQuery().toString().getBytes();
+
   }
 
   public FileSelection getSelection() {

@@ -74,7 +74,18 @@ public class TestLucene extends BaseTestQuery {
   @Test
   public void luceneQueryFilter4() throws Exception {
     testBuilder()
-        .sqlQuery("select RID from dfs_test.`/home/rchallapalli/Desktop/Work/drill/exec/java-exec/src/test/resources/testframework/ASEntity_all` where address='0' and zip_code='1352'")
+        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where address='0' and zip_code='1352'")
+        .unOrdered()
+        .csvBaselineFile("testframework/lucene4.tsv")
+        .baselineTypes(TypeProtos.MinorType.VARCHAR)
+        .baselineColumns("RID")
+        .build().run();
+  }
+
+  @Test
+  public void testQueriesWithNoConditions() throws Exception {
+    testBuilder()
+        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all`")
         .unOrdered()
         .csvBaselineFile("testframework/lucene4.tsv")
         .baselineTypes(TypeProtos.MinorType.VARCHAR)
