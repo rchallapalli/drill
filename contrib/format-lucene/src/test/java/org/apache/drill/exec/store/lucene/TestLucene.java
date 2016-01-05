@@ -83,6 +83,17 @@ public class TestLucene extends BaseTestQuery {
   }
 
   @Test
+  public void testMoreThan() throws Exception {
+    testBuilder()
+        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where `begins` > 0")
+        .unOrdered()
+        .csvBaselineFile("testframework/lucene4.tsv")
+        .baselineTypes(TypeProtos.MinorType.VARCHAR)
+        .baselineColumns("RID")
+        .build().run();
+  }
+
+  @Test
   public void testQueriesWithNoConditions() throws Exception {
     testBuilder()
         .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all`")
