@@ -110,24 +110,33 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+          }
         }
+          currentQuery = null;
         composite = false;
         break;
       case OR:
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.SHOULD);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.SHOULD);
+          }
         }
+        currentQuery = null;
         composite = false;
         break;
       case NOT:
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST_NOT);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.MUST_NOT);
+          }
         }
+        currentQuery = null;
         composite = false;
         break;
       case EQUALS:
