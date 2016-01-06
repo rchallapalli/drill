@@ -83,7 +83,28 @@ public class TestLucene extends BaseTestQuery {
   }
 
   @Test
-  public void testMoreThan() throws Exception {
+  public void testMoreThanString() throws Exception {
+    testBuilder()
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'Rundvisning Produktion - Grupp'")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'Rundvisning Produktion - Grupp' and label < 'S'")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label BETWEEN 'Rundvisning Produktion' AND 'S'")
+        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where (label = 'Karen Lisbeth Høyer' AND label = 'Lisbeth Daluiso Salmonsen') OR label = 'Karen Lisbeth Høyer' ")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label <> 'Karen Lisbeth Høyer' AND label > 'A'") //2019401
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'A'") //
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where (label <> 'Karen Lisbeth Høyer' and label > 'A') OR (label = 'Karen Lisbeth Høyer' OR label = 'Karen Lisbeth Høyer') AND label = 'Karen Lisbeth Høyer'")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label LIKE 'Kar*'")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label SIMILAR TO 'Karen Lisbeth H*'")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label IN ('Lisbeth Østergaar','Sjanne Petersen')")
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label like '\"Rundvisning Produktion\"~4'")
+        .unOrdered()
+        .csvBaselineFile("testframework/lucene4.tsv")
+        .baselineTypes(TypeProtos.MinorType.VARCHAR)
+        .baselineColumns("RID")
+        .build().run();
+  }
+
+  @Test
+  public void testMoreThanNumeric() throws Exception {
     testBuilder()
         .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where `begins` > 0")
         .unOrdered()
