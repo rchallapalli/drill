@@ -55,7 +55,10 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.TermQuery;
 */
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
   private final List<String> indexFields;
@@ -65,7 +68,8 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
   private SqlKind currentSqlKind;
   private Analyzer analyzer;
   private Query currentQuery;
-  private boolean composite = false;
+
+  final Map<SqlKind, BooleanClause.Occur> BASE_KIND = new HashMap() {{ put(SqlKind.OR, BooleanClause.Occur.SHOULD); put(SqlKind.AND, BooleanClause.Occur.MUST); put(SqlKind.NOT, BooleanClause.Occur.MUST_NOT); }};
 
 
   private String currentField;
@@ -125,111 +129,98 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
      */
 
     //Support nested conditions
-    switch (rexCall.getKind()) {
-      case AND:
-      case OR:
-      case NOT:
+    if (BASE_KIND.containsKey(rexCall.getKind())) {
         for (RexNode rexNode : rexCall.getOperands()) {
           SqlFilterToLuceneQuery subQuery = new SqlFilterToLuceneQuery(this.indexFields, inputRel);
           rexNode.accept(subQuery);
-          BooleanClause.Occur type = BooleanClause.Occur.MUST;
-          if (rexCall.getKind().equals(SqlKind.OR)) {
-              type = BooleanClause.Occur.SHOULD;
-          } else if (rexCall.getKind().equals(SqlKind.NOT)) {
-              type = BooleanClause.Occur.MUST_NOT;
-          }
-          compositeQuery.add(subQuery.getLuceneQuery(), type);
+          compositeQuery.add(subQuery.getLuceneQuery(), BASE_KIND.get(rexCall.getKind()));
         }
+    } else {
+        //Support nested field/value conditions
+        currentQuery = null;
+        isCurrentFieldIndexed = null;
+        currentField = null;
+        currentValue = null;
+        currentType = null;
+        currentSqlKind = SqlKind.EQUALS;
+        rexCall.getOperands().get(0).accept(this);
+        rexCall.getOperands().get(1).accept(this);
 
-        //System.out.println("compositeQuery: " + compositeQuery);
-        return null;
-    }
+        switch (rexCall.getKind()) {
+            case EQUALS:
+            case NOT_EQUALS:
+                //All equals queries should be handled as such. LIKE can be used for Lucene queries
+                if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
+                    currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
+                }
+                currentQuery = new TermQuery(new Term(currentField, currentValue));
+                compositeQuery.add(currentQuery, (rexCall.getKind().equals(SqlKind.EQUALS)) ? BooleanClause.Occur.MUST : BooleanClause.Occur.MUST_NOT);
+                break;
+            case GREATER_THAN_OR_EQUAL:
+                //toto - Support a A single NOT-EQUAL query by adding a "*:* AND" to the query (Now it returns nothing)
+            case GREATER_THAN:
+                if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
+                    currentQuery = NumericRangeQuery.newLongRange(currentField, Long.parseLong(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
+                    currentQuery = NumericRangeQuery.newFloatRange(currentField, Float.parseFloat(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
+                    currentQuery = NumericRangeQuery.newDoubleRange(currentField, Double.parseDouble(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
+                    currentQuery = TermRangeQuery.newStringRange(currentField, currentValue.replaceAll("'","\"").replace("-","\\-").replace("+","\\+"), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+                } else {
+                    throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
+                }
+                compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+                break;
+            case LESS_THAN:
+            case LESS_THAN_OR_EQUAL:
+                if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
+                    currentQuery = NumericRangeQuery.newLongRange(currentField, null, Long.parseLong(currentValue),false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
+                    currentQuery = NumericRangeQuery.newFloatRange(currentField, null, Float.parseFloat(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
+                    currentQuery = NumericRangeQuery.newDoubleRange(currentField, null, Double.parseDouble(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+                } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
+                    currentQuery = TermRangeQuery.newStringRange(currentField, null, currentValue.replaceAll("'","\"").replace("-","\\-").replace("+","\\+"), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+                } else {
+                    throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
+                }
+                compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+                break;
+            case SIMILAR:
+                //todo - decide if this should behave differently (both support Lucene operators now)
+            case LIKE:
+                //todo - This is not behaving as expected (I will continue to investigate) - http://www.avajava.com/tutorials/lessons/how-do-i-perform-a-wildcard-query.html
+                if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
+                    currentValue = currentValue.substring(1).substring(0,currentValue.length()-2);
+                    //currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
+                }
 
-    //Support nested field/value conditions
-    currentQuery = null;
-    isCurrentFieldIndexed = null;
-    currentField = null;
-    currentValue = null;
-    currentType = null;
-    currentSqlKind = SqlKind.EQUALS;
-    rexCall.getOperands().get(0).accept(this);
-    rexCall.getOperands().get(1).accept(this);
+                try {
+                    if (currentValue.contains("*") || currentValue.contains("?")) {
+                        currentQuery = new WildcardQuery(new Term(currentField, currentValue));
+                    } else {
+                        QueryParser likeParser = new QueryParser(currentField, new ClassicAnalyzer());
+                        currentQuery = likeParser.parse( currentValue.replace("-","\\-").replace("+","\\+") );
+                    }
+                } catch (ParseException e) {
+                    throw new RuntimeException("Lucene parsing error for a Like condition: " + e, e);
+                }
 
-    switch (rexCall.getKind()) {
-      case EQUALS:
-      case NOT_EQUALS:
-        //All equals queries should be handled as such. LIKE can be used for Lucene queries
-        if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
-            currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
+                compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+                break;
+            case BETWEEN:
+                //todo - BETWEEN is implemented as two MIN and MAX statements and that does not map well to Lucene (I will examine)
+            case IN:
+                //todo - IN is implemented as multiple EQUALS statements (I will examine)
+            case PLUS:
+            case MINUS:
+            default:
+                throw new RuntimeException("Lucene plugin does not yet support '" + rexCall.getKind() + "' conditions");
         }
-        currentQuery = new TermQuery(new Term(currentField, currentValue));
-        compositeQuery.add(currentQuery, (rexCall.getKind().equals(SqlKind.EQUALS)) ? BooleanClause.Occur.MUST : BooleanClause.Occur.MUST_NOT);
-        break;
-      case GREATER_THAN_OR_EQUAL:
-        //toto - Support a A single NOT-EQUAL query by adding a "*:* AND" to the query (Now it returns nothing)
-      case GREATER_THAN:
-        if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
-          currentQuery = NumericRangeQuery.newLongRange(currentField, Long.parseLong(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
-          currentQuery = NumericRangeQuery.newFloatRange(currentField, Float.parseFloat(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
-          currentQuery = NumericRangeQuery.newDoubleRange(currentField, Double.parseDouble(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
-          currentQuery = TermRangeQuery.newStringRange(currentField, currentValue.replaceAll("'","\"").replace("-","\\-").replace("+","\\+"), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
-        } else {
-          throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
-        }
-        compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
-        break;
-      case LESS_THAN:
-      case LESS_THAN_OR_EQUAL:
-        if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
-          currentQuery = NumericRangeQuery.newLongRange(currentField, null, Long.parseLong(currentValue),false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
-          currentQuery = NumericRangeQuery.newFloatRange(currentField, null, Float.parseFloat(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
-          currentQuery = NumericRangeQuery.newDoubleRange(currentField, null, Double.parseDouble(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
-        } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
-          currentQuery = TermRangeQuery.newStringRange(currentField, null, currentValue.replaceAll("'","\"").replace("-","\\-").replace("+","\\+"), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
-        } else {
-          throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
-        }
-        compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
-        break;
-      case SIMILAR:
-        //todo - decide if this should behave differently (both support Lucene operators now)
-      case LIKE:
-        //todo - This is not behaving as expected (I will continue to investigate) - http://www.avajava.com/tutorials/lessons/how-do-i-perform-a-wildcard-query.html
-        if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
-          currentValue = currentValue.substring(1).substring(0,currentValue.length()-2);
-          //currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
-        }
-
-        try {
-          if (currentValue.contains("*") || currentValue.contains("?")) {
-            currentQuery = new WildcardQuery(new Term(currentField, currentValue));
-          } else {
-            QueryParser likeParser = new QueryParser(currentField, new ClassicAnalyzer());
-            currentQuery = likeParser.parse( currentValue.replace("-","\\-").replace("+","\\+") );
-          }
-        } catch (ParseException e) {
-          throw new RuntimeException("Lucene parsing error for a Like condition: " + e, e);
-        }
-
-        compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
-        break;
-      case BETWEEN:
-        //todo - BETWEEN is implemented as two MIN and MAX statements and that does not map well to Lucene (I will examine)
-      case IN:
-          //todo - IN is implemented as multiple EQUALS statements (I will examine)
-      case PLUS:
-      case MINUS:
-      default:
-        throw new RuntimeException("Lucene plugin does not yet support '" + rexCall.getKind() + "' conditions");
     }
 
     //System.out.println("compositeQuery: " + compositeQuery);
-
     return null;
   }
 
