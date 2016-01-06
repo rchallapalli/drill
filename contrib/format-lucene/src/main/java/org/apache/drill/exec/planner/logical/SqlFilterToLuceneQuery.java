@@ -82,7 +82,7 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
     this.inputRel = inputRel;
     compositeQuery = new BooleanQuery();
     isCurrentFieldIndexed = false;
-    analyzer = new WhitespaceAnalyzer();
+    analyzer = new ClassicAnalyzer();
   }
 
   public Query getLuceneQuery() {
@@ -153,8 +153,21 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
                 if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
                     currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
                 }
-                currentQuery = new TermQuery(new Term(currentField, currentValue));
+                currentValue = currentValue.replace("-","\\-").replace("+","\\+");
+
+                //Todo - find out why this behaves differently than same query in Luke when dealing with - and + values in strings
+                if (isCurrentFieldIndexed) {
+                    try {
+                        QueryParser queryParser = new QueryParser(currentField, analyzer);
+                        currentQuery = queryParser.parse(currentValue);
+                    } catch (ParseException e) {
+                        throw new RuntimeException("Failed to parse the search string : " + currentValue, e);
+                    }
+                } else {
+                    currentQuery = new TermQuery(new Term(currentField, currentValue));
+                }
                 compositeQuery.add(currentQuery, (rexCall.getKind().equals(SqlKind.EQUALS)) ? BooleanClause.Occur.MUST : BooleanClause.Occur.MUST_NOT);
+                //System.out.println("currentQuery " + currentQuery);
                 break;
             case GREATER_THAN_OR_EQUAL:
                 //toto - Support a A single NOT-EQUAL query by adding a "*:* AND" to the query (Now it returns nothing)
