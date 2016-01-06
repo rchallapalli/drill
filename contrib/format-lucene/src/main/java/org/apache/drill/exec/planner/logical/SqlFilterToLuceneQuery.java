@@ -18,6 +18,7 @@
 
 package org.apache.drill.exec.planner.logical;
 
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexDynamicParam;
@@ -30,15 +31,16 @@ import org.apache.calcite.rex.RexOver;
 import org.apache.calcite.rex.RexRangeRef;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.flexible.standard.QueryParserUtil;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.TermQuery;
 
 import java.util.List;
@@ -56,6 +58,7 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
 
   private String currentField;
   private String currentValue;
+  private RelDataType currentType;
 
   public SqlFilterToLuceneQuery(List<String> indexFields, DrillRel inputRel) {
     super(true);
@@ -74,6 +77,7 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
   public Void visitInputRef(RexInputRef rexInputRef) {
     int index = rexInputRef.getIndex();
     currentField = inputRel.getRowType().getFieldList().get(index).getName();
+    currentType = inputRel.getRowType().getFieldList().get(index).getType();
     if (indexFields.contains(currentField)) {
       if (currentSqlKind == null) {
         throw new RuntimeException(new Exception("SqlKind not set"));
@@ -85,49 +89,60 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
     } else {
       isCurrentFieldIndexed = false;
     }
-
     return null;
   }
 
   @Override
   public Void visitLocalRef(RexLocalRef rexLocalRef) {
+    currentValue = rexLocalRef.toString();
+    currentType = rexLocalRef.getType();
     return null;
   }
 
   @Override
   public Void visitLiteral(RexLiteral rexLiteral) {
     currentValue = rexLiteral.toString();
+    currentType = rexLiteral.getType();
     return null;
   }
 
   @Override
   public Void visitCall(RexCall rexCall) {
-        /*
-         * TODO how to evaluate an expression where col1+col2 > 5
-         */
+    /*
+     * TODO how to evaluate an expression where col1+col2 > 5
+     */
     switch (rexCall.getKind()) {
       case AND:
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+          }
         }
+        currentQuery = null;
         composite = false;
         break;
       case OR:
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.SHOULD);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.SHOULD);
+          }
         }
+        currentQuery = null;
         composite = false;
         break;
       case NOT:
         composite = true;
         for (RexNode rexNode : rexCall.getOperands()) {
           rexNode.accept(this);
-          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST_NOT);
+          if (currentQuery != null) {
+            compositeQuery.add(currentQuery, BooleanClause.Occur.MUST_NOT);
+          }
         }
+        currentQuery = null;
         composite = false;
         break;
       case EQUALS:
@@ -135,10 +150,12 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
         isCurrentFieldIndexed = null;
         currentField = null;
         currentValue = null;
+        currentType = null;
         currentSqlKind = SqlKind.EQUALS;
         rexCall.getOperands().get(0).accept(this);
         rexCall.getOperands().get(1).accept(this);
         QueryParser queryParser = new QueryParser(currentField, analyzer);
+
         if (isCurrentFieldIndexed) {
           try {
             currentQuery = queryParser.parse(currentValue);
@@ -149,23 +166,67 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
         } else {
           currentQuery = new TermQuery(new Term(currentField, currentValue));
         }
+
         if (!composite) {
           compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
         }
         break;
-      case NOT_EQUALS:
       case GREATER_THAN:
       case GREATER_THAN_OR_EQUAL:
+        currentSqlKind = rexCall.getKind();
+        currentField = null;
+        currentValue = null;
+        currentType = null;
+        rexCall.getOperands().get(0).accept(this);
+        rexCall.getOperands().get(1).accept(this);
+
+        if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
+          currentQuery = NumericRangeQuery.newLongRange(currentField, Long.parseLong(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+        } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
+          currentQuery = NumericRangeQuery.newFloatRange(currentField, Float.parseFloat(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+        } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
+          currentQuery = NumericRangeQuery.newDoubleRange(currentField, Double.parseDouble(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
+        } else {
+          throw new RuntimeException("Hmmm... " + currentType.getSqlTypeName() + " is not supported yet ....");
+        }
+
+        if (!composite) {
+          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+        }
+
+        break;
       case LESS_THAN:
       case LESS_THAN_OR_EQUAL:
+        currentSqlKind = rexCall.getKind();
+        currentField = null;
+        currentValue = null;
+        currentType = null;
+        rexCall.getOperands().get(0).accept(this);
+        rexCall.getOperands().get(1).accept(this);
+
+        if (currentType.getSqlTypeName().equals(SqlTypeName.INTEGER)) {
+          currentQuery = NumericRangeQuery.newLongRange(currentField, null, Long.parseLong(currentValue),false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+        } else if (currentType.getSqlTypeName().equals(SqlTypeName.FLOAT) || currentType.getSqlTypeName().equals(SqlTypeName.REAL)) {
+          currentQuery = NumericRangeQuery.newFloatRange(currentField, null, Float.parseFloat(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+        } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
+          currentQuery = NumericRangeQuery.newDoubleRange(currentField, null, Double.parseDouble(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
+        } else {
+          throw new RuntimeException("Hmmm... " + currentType.getSqlTypeName() + " is not supported yet ....");
+        }
+
+        if (!composite) {
+          compositeQuery.add(currentQuery, BooleanClause.Occur.MUST);
+        }
+
+        break;
+      case BETWEEN:
+      case NOT_EQUALS:
       case LIKE:
       case SIMILAR:
-      case BETWEEN:
       case IN:
       case PLUS:
       case MINUS:
       default:
-
     }
 
     return null;

@@ -21,18 +21,14 @@ package org.apache.drill.exec.store.lucene;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.store.dfs.FileSelection;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 
-import java.io.File;
-import java.net.URI;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class LuceneScanSpec {
   private FileSelection selection;
@@ -65,11 +61,15 @@ public class LuceneScanSpec {
 
   @JsonIgnore
   public Query getSearchQuery() {
+    if (this.searchQuery == null) {
+      this.searchQuery = new MatchAllDocsQuery();
+    }
     return this.searchQuery;
   }
 
   public byte[] getSerializedSerachQuery() {
-      return searchQuery.toString().getBytes();
+    return getSearchQuery().toString().getBytes();
+
   }
 
   public FileSelection getSelection() {
