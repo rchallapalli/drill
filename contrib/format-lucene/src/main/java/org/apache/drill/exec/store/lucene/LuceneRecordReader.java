@@ -32,13 +32,11 @@ import org.apache.drill.exec.vector.BaseValueVector;
 import org.apache.drill.exec.vector.NullableVarCharVector;
 import org.apache.drill.exec.vector.ValueVector;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.SegmentReader;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.queryparser.flexible.standard.QueryParserUtil;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
@@ -58,6 +56,7 @@ public class LuceneRecordReader extends AbstractRecordReader {
   private final Query searchQuery;
   private boolean matchAll = false;
   private ScoreDoc currentScoreDoc;
+  private MatchAllDocsQuery matchAllDocsQuery = null;
 
   public LuceneRecordReader(SegmentReader segmentReader, List<SchemaPath> columns, String searchQueryString) {
     this.segmentReader = segmentReader;
@@ -105,11 +104,11 @@ public class LuceneRecordReader extends AbstractRecordReader {
       TopDocs results;
       if (matchAll) {
         if (currentScoreDoc == null) {
-          results = searcher.search(new MatchAllDocsQuery(), BaseValueVector.INITIAL_VALUE_ALLOCATION);
+          this.matchAllDocsQuery = new MatchAllDocsQuery();
+          results = searcher.search(this.matchAllDocsQuery, BaseValueVector.INITIAL_VALUE_ALLOCATION);
         } else {
-          results = searcher.searchAfter(currentScoreDoc, new MatchAllDocsQuery(), BaseValueVector.INITIAL_VALUE_ALLOCATION);
+          results = searcher.searchAfter(currentScoreDoc, this.matchAllDocsQuery, BaseValueVector.INITIAL_VALUE_ALLOCATION);
         }
-
       } else {
         if (currentScoreDoc == null) {
           results = searcher.search(searchQuery, BaseValueVector.INITIAL_VALUE_ALLOCATION);
@@ -125,20 +124,15 @@ public class LuceneRecordReader extends AbstractRecordReader {
         int j = 0;
         // TODO handle the case when * is used
         while (columnsIterator.hasNext()) {
-          SchemaPath column = columnsIterator.next();
-          String columnName = column.getRootSegment().getPath();
-          final String columnValue = doc.get(columnName);
-          if (columnValue != null) {
-            final byte[] valueBytes = columnValue.getBytes();
-
-            ((NullableVarCharVector) vectors.get(j)).getMutator().setSafe(i, valueBytes, 0, columnValue.length());
+          String[] values = doc.getValues(columnsIterator.next().getRootSegment().getPath());
+          if (values.length > 0) {
+            ((NullableVarCharVector) vectors.get(j)).getMutator().setSafe(i, values[0].getBytes(), 0, values[0].getBytes().length);
           } else {
             ((NullableVarCharVector) vectors.get(j)).getMutator().setNull(i);
           }
           j++;
         }
       }
-
 
       for (ValueVector vv : vectors) {
         vv.getMutator().setValueCount(hits.length);
