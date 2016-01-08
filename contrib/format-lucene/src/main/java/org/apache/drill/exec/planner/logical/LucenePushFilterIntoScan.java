@@ -79,11 +79,9 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
     }
   };
 
-
   private LucenePushFilterIntoScan(RelOptRuleOperand operand, String id) {
     super(operand, id);
   }
-
 
   public void doOnMatch(RelOptRuleCall call, DrillFilterRel filterRel, DrillProjectRel projectRel, DrillScanRel scanRel) {
     DrillRel inputRel = projectRel != null ? projectRel : scanRel;
