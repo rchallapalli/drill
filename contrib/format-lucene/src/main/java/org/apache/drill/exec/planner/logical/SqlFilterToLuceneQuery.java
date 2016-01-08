@@ -35,8 +35,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.analysis.standard.ClassicAnalyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -82,7 +84,8 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
     this.inputRel = inputRel;
     compositeQuery = new BooleanQuery();
     isCurrentFieldIndexed = false;
-    analyzer = new ClassicAnalyzer(); //The classic analyser handles escaping in an almost
+    //analyzer = new ClassicAnalyzer(); //The classic analyser handles escaping in an almost
+    analyzer = new StandardAnalyzer(); //The classic analyser handles escaping in an almost
   }
 
   public Query getLuceneQuery() {
@@ -160,7 +163,12 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
                 //Todo - find out why this behaves differently than same query in Luke when dealing with - and + values in strings
                 if (isCurrentFieldIndexed) {
                     try {
-                        currentQuery =  new QueryParser(currentField, analyzer).parse(currentValue);
+                        if (true || currentValue.contains(" ")) {
+                            QueryParser queryParser = new QueryParser(currentField, analyzer);
+                            currentQuery = queryParser.createPhraseQuery(currentField, currentValue);
+                        } else {
+                            currentQuery =  new QueryParser(currentField, analyzer).parse(currentValue);
+                        }
                     } catch (ParseException e) {
                         throw new RuntimeException("Failed to parse the search string : " + currentValue, e);
                     }

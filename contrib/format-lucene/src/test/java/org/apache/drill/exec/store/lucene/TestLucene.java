@@ -97,8 +97,8 @@ public class TestLucene extends BaseTestQuery {
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all`")
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label <> 'Karen Lisbeth Høyer' AND label > 'A'") //2019401
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'A'") //
-        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id = '1-1577434'") //
-        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id > '1-1577434'") //
+        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id = '1-1577434'") //
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id > '1-1577434'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where (label <> 'Karen Lisbeth Høyer' and label > 'A') OR (label = 'Karen Lisbeth Høyer' OR label = 'Karen Lisbeth Høyer') AND label = 'Karen Lisbeth Høyer'")
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label LIKE 'Kar*'")
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label SIMILAR TO 'Karen Lisbeth H*'")
