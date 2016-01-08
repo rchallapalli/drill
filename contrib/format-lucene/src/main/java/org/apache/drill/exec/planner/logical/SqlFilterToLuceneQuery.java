@@ -150,28 +150,17 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
         rexCall.getOperands().get(1).accept(this);
 
         if (currentValue.startsWith("'") || currentValue.endsWith("'")) {
-            currentValue = "\"" + currentValue.substring(1).substring(0,currentValue.length()-2) + "\"";
+            currentValue = currentValue.substring(1).substring(0,currentValue.length()-2);
+            currentValue = currentValue.replace("-","\\-").replace("+","\\+").replace(":","\\:");
         }
 
         switch (rexCall.getKind()) {
             case EQUALS:
             case NOT_EQUALS:
                 //All equals queries should be handled as such. LIKE can be used for Lucene queries
-                currentValue = currentValue.replace("-","\\-").replace("+","\\+").replace(":","\\:");
-                //System.out.println(currentValue);
-
                 //Todo - find out why this behaves differently than same query in Luke when dealing with - and + values in strings
                 if (isCurrentFieldIndexed) {
-                    try {
-                        if (true || currentValue.contains(" ")) {
-                            QueryParser queryParser = new QueryParser(currentField, analyzer);
-                            currentQuery = queryParser.createPhraseQuery(currentField, currentValue);
-                        } else {
-                            currentQuery =  new QueryParser(currentField, analyzer).parse(currentValue);
-                        }
-                    } catch (ParseException e) {
-                        throw new RuntimeException("Failed to parse the search string : " + currentValue, e);
-                    }
+                    currentQuery = new QueryParser(currentField, analyzer).createPhraseQuery(currentField, currentValue);
                 } else {
                     currentQuery = new TermQuery(new Term(currentField, currentValue));
                 }
@@ -188,7 +177,6 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
                 } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
                     currentQuery = NumericRangeQuery.newDoubleRange(currentField, Double.parseDouble(currentValue), null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
                 } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
-                    currentValue = currentValue.replace("-","\\-").replace("+","\\+").replace(":","\\:").replace("#","\\#");
                     currentQuery = TermRangeQuery.newStringRange(currentField, currentValue, null, rexCall.getKind().equals(SqlKind.GREATER_THAN_OR_EQUAL), false);
                 } else {
                     throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
@@ -204,7 +192,6 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
                 } else if (currentType.getSqlTypeName().equals(SqlTypeName.DOUBLE)) {
                     currentQuery = NumericRangeQuery.newDoubleRange(currentField, null, Double.parseDouble(currentValue), false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
                 } else if (currentType.getSqlTypeName().equals(SqlTypeName.CHAR) || currentType.getSqlTypeName().equals(SqlTypeName.VARCHAR)) {
-                    currentValue = currentValue.replace("-","\\-").replace("+","\\+").replace(":","\\:").replace("#","\\#");
                     currentQuery = TermRangeQuery.newStringRange(currentField, null, currentValue, false, rexCall.getKind().equals(SqlKind.LESS_THAN_OR_EQUAL));
                 } else {
                     throw new RuntimeException("Lucene plugin does not yet support '" + currentType.getSqlTypeName() + "' based range queryes");
@@ -216,13 +203,13 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
             case LIKE:
                 //todo - This is not behaving as expected (I will continue to investigate) - http://www.avajava.com/tutorials/lessons/how-do-i-perform-a-wildcard-query.html
                 try {
-                    currentValue = currentValue.replace("-","\\-").replace("+","\\+").replace(":","\\:").replace("#","\\#");
                     if (currentValue.contains("*") || currentValue.contains("?")) {
                         currentQuery = new WildcardQuery(new Term(currentField, currentValue));
                     } else {
-                        QueryParser likeParser = new QueryParser(currentField, new ClassicAnalyzer());
+                        QueryParser likeParser = new QueryParser(currentField, analyzer);
                         currentQuery = likeParser.parse( currentValue );
                     }
+                    //System.out.println("currentQuery: " + currentQuery);
                 } catch (ParseException e) {
                     throw new RuntimeException("Lucene parsing error for a Like condition: " + e, e);
                 }
