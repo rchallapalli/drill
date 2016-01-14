@@ -106,7 +106,6 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-      System.out.println("call " + call.rels + " " + call.rels.length);
       final DrillJoinRel joinRel = (DrillJoinRel) call.rel(0);
       final DrillScanRel scanRel = (DrillScanRel) call.rel(1);
       doOnJoinMatch(call, joinRel, scanRel);
@@ -154,6 +153,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
       );
       */
 
+      //todo - figure out why this is breaking (see the re-writing above)
       call.transformTo(newScanRel);
     } catch (IOException e) {
       throw new DrillRuntimeException(e);
