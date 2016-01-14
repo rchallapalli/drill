@@ -90,6 +90,20 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
     }
 
     @Override
+    public boolean matches(RelOptRuleCall call) {
+
+      final DrillScanRel scan = (DrillScanRel) call.rel(1);
+      GroupScan groupScan = scan.getGroupScan();
+
+      if (groupScan instanceof LuceneGroupScan) {
+        if (((LuceneGroupScan) groupScan).supportsFilterPushDown()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
     public void onMatch(RelOptRuleCall call) {
       final DrillJoinRel joinRel = (DrillJoinRel) call.rel(0);
       final DrillScanRel scanRel = (DrillScanRel) call.rel(1);
