@@ -116,18 +116,15 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
 
   public void doOnJoinMatch(RelOptRuleCall call, DrillJoinRel joinRel, DrillScanRel scanRel) {
 
-    DrillRel inputRel = scanRel;
+    SqlJoinFilterToLuceneQuery sqlFilterToLuceneQuery = new SqlJoinFilterToLuceneQuery(((LuceneGroupScan) scanRel.getGroupScan()).getIndexFields(), joinRel);
 
-    scanRel.getGroupScan();
-
-    SqlFilterToLuceneQuery sqlFilterToLuceneQuery = new SqlFilterToLuceneQuery(((LuceneGroupScan) scanRel.getGroupScan()).getIndexFields(), inputRel);
-
-    //filterRel.getCondition().accept(sqlFilterToLuceneQuery);
+    joinRel.getCondition().accept(sqlFilterToLuceneQuery);
 
     LuceneGroupScan luceneGroupScan = (LuceneGroupScan) scanRel.getGroupScan();
     LuceneScanSpec luceneScanSpec = luceneGroupScan.getLuceneScanSpec();
     LuceneScanSpec newLuceneScanSpec = new LuceneScanSpec(luceneScanSpec.getSelectionRoot(), luceneScanSpec.getSelection(), sqlFilterToLuceneQuery.getLuceneQuery());
     try {
+
       LuceneGroupScan newLuceneGroupScan = new LuceneGroupScan(
               luceneGroupScan.getUserName(),
               newLuceneScanSpec,
@@ -135,21 +132,28 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
               luceneGroupScan.getColumns()
       );
 
-      DrillJoinRel newScanRel = null;
-      try {
-        newScanRel = new DrillJoinRel(
+      DrillScanRel newScanRel = new DrillScanRel(
                 scanRel.getCluster(),
                 scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
-                joinRel.getLeft(),
-                joinRel.getRight(),
-                joinRel.getCondition(),
-                joinRel.getJoinType(),
-                joinRel.getLeftKeys(),
-                joinRel.getRightKeys()
-        );
-      } catch (InvalidRelException e) {
-        throw new DrillRuntimeException(e);
-      }
+                scanRel.getTable(),
+                newLuceneGroupScan,
+                scanRel.getRowType(),
+                scanRel.getColumns(),
+                true
+      );
+
+      /*
+      DrillJoinRel newScanRel = new DrillJoinRel(
+              scanRel.getCluster(),
+              scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
+              joinRel
+              scanRel.getTable(),
+              newLuceneGroupScan,
+              scanRel.getRowType(),
+              scanRel.getColumns()
+      );
+      */
+
       call.transformTo(newScanRel);
     } catch (IOException e) {
       throw new DrillRuntimeException(e);
