@@ -105,6 +105,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
 
     @Override
     public void onMatch(RelOptRuleCall call) {
+      System.out.println("call " + call.rels + " " + call.rels.length);
       final DrillJoinRel joinRel = (DrillJoinRel) call.rel(0);
       final DrillScanRel scanRel = (DrillScanRel) call.rel(1);
       doOnJoinMatch(call, joinRel, scanRel);
@@ -132,6 +133,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
               luceneGroupScan.getFormatPlugin(),
               luceneGroupScan.getColumns()
       );
+
       DrillScanRel newScanRel = new DrillScanRel(
               scanRel.getCluster(),
               scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
@@ -141,7 +143,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
               scanRel.getColumns()
       );
 
-      //call.transformTo(newScanRel);
+      call.transformTo(newScanRel);
     } catch (IOException e) {
       throw new DrillRuntimeException(e);
     }

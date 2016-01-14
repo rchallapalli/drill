@@ -74,8 +74,6 @@ public class LuceneRecordReader extends AbstractRecordReader {
     } catch (ParseException e) {
       throw new RuntimeException(e);
     }
-
-
   }
 
   @Override
