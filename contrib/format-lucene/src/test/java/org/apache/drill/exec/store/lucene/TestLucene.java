@@ -98,7 +98,8 @@ public class TestLucene extends BaseTestQuery {
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label <> 'Karen Lisbeth Høyer' AND label > 'A'") //2019401
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'A'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id = '1-1577434'") //
-        .sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id like '1?1577434'") //
+        //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id like '1?1577434'") //
+        .sqlQuery("select s.sold_to from dfs_test.`/var/as/data/analytics/streaming/venuepoint/transactions` as s left join dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` as c on (c.entity_ref = s.sold_to) limit 10" ) //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id > '1-1577434'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where (label <> 'Karen Lisbeth Høyer' and label > 'A') OR (label = 'Karen Lisbeth Høyer' OR label = 'Karen Lisbeth Høyer') AND label = 'Karen Lisbeth Høyer'")
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label LIKE 'Kar*'")

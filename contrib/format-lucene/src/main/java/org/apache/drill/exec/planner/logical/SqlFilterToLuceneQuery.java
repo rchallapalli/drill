@@ -233,7 +233,8 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
 
   @Override
   public Void visitOver(RexOver rexOver) {
-    return null;
+
+      return null;
   }
 
   @Override
@@ -243,16 +244,19 @@ public class SqlFilterToLuceneQuery extends RexVisitorImpl<Void> {
 
   @Override
   public Void visitDynamicParam(RexDynamicParam rexDynamicParam) {
+
     return null;
   }
 
   @Override
   public Void visitRangeRef(RexRangeRef rexRangeRef) {
-    return null;
+
+      return null;
   }
 
   @Override
   public Void visitFieldAccess(RexFieldAccess rexFieldAccess) {
-    return null;
+
+      return null;
   }
 }
