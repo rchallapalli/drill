@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.exec.physical.base.GroupScan;
@@ -134,15 +135,21 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
               luceneGroupScan.getColumns()
       );
 
-      DrillScanRel newScanRel = new DrillScanRel(
-              scanRel.getCluster(),
-              scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
-              scanRel.getTable(),
-              newLuceneGroupScan,
-              scanRel.getRowType(),
-              scanRel.getColumns()
-      );
-
+      DrillJoinRel newScanRel = null;
+      try {
+        newScanRel = new DrillJoinRel(
+                scanRel.getCluster(),
+                scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
+                joinRel.getLeft(),
+                joinRel.getRight(),
+                joinRel.getCondition(),
+                joinRel.getJoinType(),
+                joinRel.getLeftKeys(),
+                joinRel.getRightKeys()
+        );
+      } catch (InvalidRelException e) {
+        throw new DrillRuntimeException(e);
+      }
       call.transformTo(newScanRel);
     } catch (IOException e) {
       throw new DrillRuntimeException(e);
