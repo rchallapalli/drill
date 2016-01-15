@@ -99,7 +99,8 @@ public class TestLucene extends BaseTestQuery {
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label > 'A'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id = '1-1577434'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id like '1?1577434'") //
-        .sqlQuery("select s.sold_to from dfs_test.`/var/as/data/analytics/streaming/venuepoint/transactions` as s left join dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` as c on (c.entity_ref = s.sold_to) limit 10" ) //
+        //.sqlQuery("select s.sold_to from dfs_test.`/var/as/data/analytics/streaming/venuepoint/transactions` as s left join dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` as c on (c.entity_ref = s.sold_to) limit 10" ) //
+        .sqlQuery("select label, RID, begins, entity_id, entity_ref from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_ref in ('Customer/4-2465200','Customer/4-1137668','Customer/4-2465201','Customer/4-2465201','Customer/5-1791128','Customer/5-1430210','Customer/1-2626765','Customer/1-2861864','Customer/1-2861864','Customer/5-2101802','Customer/1-2163519')" ) //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where entity_id > '1-1577434'") //
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where (label <> 'Karen Lisbeth Høyer' and label > 'A') OR (label = 'Karen Lisbeth Høyer' OR label = 'Karen Lisbeth Høyer') AND label = 'Karen Lisbeth Høyer'")
         //.sqlQuery("select RID from dfs_test.`/var/as/data/historical/venuepoint/luceneIndexes/ASEntity_all` where label LIKE 'Kar*'")

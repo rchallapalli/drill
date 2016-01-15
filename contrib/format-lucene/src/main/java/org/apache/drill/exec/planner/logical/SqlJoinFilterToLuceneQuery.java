@@ -1,7 +1,16 @@
 package org.apache.drill.exec.planner.logical;
 
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.calcite.rex.*;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexVisitorImpl;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLocalRef;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.calcite.rex.RexOver;
+import org.apache.calcite.rex.RexCorrelVariable;
+import org.apache.calcite.rex.RexDynamicParam;
+import org.apache.calcite.rex.RexRangeRef;
+import org.apache.calcite.rex.RexFieldAccess;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
