@@ -449,18 +449,7 @@ public final class DrillBuf extends AbstractByteBuf implements AutoCloseable {
   public String toString(int index, int length, Charset charset) {
 
     if (length == 0) {
-      //return basics;
-      return String.format("{DrillBuf[%d], udle identityHashCode == %d, identityHashCode == %d}",
-              id, System.identityHashCode(byteBuf), System.identityHashCode(refCnt));
-    }
-
-    final ByteBuffer nioBuffer;
-    if (nioBufferCount() == 1) {
-      nioBuffer = nioBuffer(index, length);
-    } else {
-      nioBuffer = ByteBuffer.allocate(length);
-      getBytes(index, nioBuffer);
-      nioBuffer.flip();
+      return "";
     }
 
     return ByteBufUtil.decodeString(nioBuffer(index, length), charset);
