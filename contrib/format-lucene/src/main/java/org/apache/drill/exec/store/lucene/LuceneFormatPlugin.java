@@ -103,7 +103,7 @@ public class LuceneFormatPlugin implements FormatPlugin {
 
   @Override
   public Set<StoragePluginOptimizerRule> getOptimizerRules() {
-    return ImmutableSet.of(LucenePushFilterIntoScan.LUCENE_FILTER_ON_PROJECT, LucenePushFilterIntoScan.LUCENE_FILTER_ON_SCAN);
+    return ImmutableSet.of(LucenePushFilterIntoScan.LUCENE_FILTER_ON_PROJECT, LucenePushFilterIntoScan.LUCENE_FILTER_ON_SCAN, LucenePushFilterIntoScan.LUCENE_FILTER_ON_JOIN_REL);
   }
 
   @Override

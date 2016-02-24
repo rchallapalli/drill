@@ -23,9 +23,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.planner.common.DrillJoinRelBase;
 import org.apache.drill.exec.store.StoragePluginOptimizerRule;
 import org.apache.drill.exec.store.lucene.LuceneGroupScan;
 import org.apache.drill.exec.store.lucene.LuceneScanSpec;
@@ -39,6 +41,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
     @Override
     public boolean matches(RelOptRuleCall call) {
       final DrillScanRel scan = (DrillScanRel) call.rel(1);
+
       GroupScan groupScan = scan.getGroupScan();
       if (groupScan instanceof LuceneGroupScan) {
         if (((LuceneGroupScan) groupScan).supportsFilterPushDown()) {
@@ -60,6 +63,7 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
       "LucenePushPartitionFilterIntoScan:Filter_On_Project") {
     @Override
     public boolean matches(RelOptRuleCall call) {
+
       final DrillScanRel scan = (DrillScanRel) call.rel(2);
       GroupScan groupScan = scan.getGroupScan();
       if (groupScan instanceof LuceneGroupScan) {
@@ -79,13 +83,90 @@ public abstract class LucenePushFilterIntoScan extends StoragePluginOptimizerRul
     }
   };
 
+  public static final StoragePluginOptimizerRule LUCENE_FILTER_ON_JOIN_REL = new LucenePushFilterIntoScan(RelOptHelper.some(DrillJoinRel.class, RelOptHelper.any(DrillScanRel.class)), "LucenePushPartitionFilterIntoScan:Filter_On_Join_Filter") {
+
+    @Override
+    public void doOnJoinMatch(RelOptRuleCall call, DrillJoinRel joinRel, DrillScanRel scanRel) {
+      super.doOnJoinMatch(call, joinRel, scanRel);
+    }
+
+    @Override
+    public boolean matches(RelOptRuleCall call) {
+
+      final DrillScanRel scan = (DrillScanRel) call.rel(1);
+      GroupScan groupScan = scan.getGroupScan();
+
+      if (groupScan instanceof LuceneGroupScan) {
+        if (((LuceneGroupScan) groupScan).supportsFilterPushDown()) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public void onMatch(RelOptRuleCall call) {
+      final DrillJoinRel joinRel = (DrillJoinRel) call.rel(0);
+      final DrillScanRel scanRel = (DrillScanRel) call.rel(1);
+      doOnJoinMatch(call, joinRel, scanRel);
+    }
+
+  };
+
+  public void doOnJoinMatch(RelOptRuleCall call, DrillJoinRel joinRel, DrillScanRel scanRel) {
+
+    SqlJoinFilterToLuceneQuery sqlFilterToLuceneQuery = new SqlJoinFilterToLuceneQuery(((LuceneGroupScan) scanRel.getGroupScan()).getIndexFields(), joinRel);
+
+    joinRel.getCondition().accept(sqlFilterToLuceneQuery);
+
+    LuceneGroupScan luceneGroupScan = (LuceneGroupScan) scanRel.getGroupScan();
+    LuceneScanSpec luceneScanSpec = luceneGroupScan.getLuceneScanSpec();
+    LuceneScanSpec newLuceneScanSpec = new LuceneScanSpec(luceneScanSpec.getSelectionRoot(), luceneScanSpec.getSelection(), sqlFilterToLuceneQuery.getLuceneQuery());
+    try {
+
+      LuceneGroupScan newLuceneGroupScan = new LuceneGroupScan(
+              luceneGroupScan.getUserName(),
+              newLuceneScanSpec,
+              luceneGroupScan.getFormatPlugin(),
+              luceneGroupScan.getColumns()
+      );
+
+      DrillScanRel newScanRel = new DrillScanRel(
+                scanRel.getCluster(),
+                scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
+                scanRel.getTable(),
+                newLuceneGroupScan,
+                scanRel.getRowType(),
+                scanRel.getColumns(),
+                true
+      );
+
+      /*
+      DrillJoinRel newScanRel = new DrillJoinRel(
+              scanRel.getCluster(),
+              scanRel.getTraitSet().plus(DrillRel.DRILL_LOGICAL),
+              joinRel
+              scanRel.getTable(),
+              newLuceneGroupScan,
+              scanRel.getRowType(),
+              scanRel.getColumns()
+      );
+      */
+
+      //todo - figure out why this is breaking (see the re-writing above)
+      call.transformTo(newScanRel);
+    } catch (IOException e) {
+      throw new DrillRuntimeException(e);
+    }
+
+  }
 
   private LucenePushFilterIntoScan(RelOptRuleOperand operand, String id) {
     super(operand, id);
   }
 
-
   public void doOnMatch(RelOptRuleCall call, DrillFilterRel filterRel, DrillProjectRel projectRel, DrillScanRel scanRel) {
+
     DrillRel inputRel = projectRel != null ? projectRel : scanRel;
     SqlFilterToLuceneQuery sqlFilterToLuceneQuery = new SqlFilterToLuceneQuery(((LuceneGroupScan) scanRel.getGroupScan()).getIndexFields(), inputRel);
 
